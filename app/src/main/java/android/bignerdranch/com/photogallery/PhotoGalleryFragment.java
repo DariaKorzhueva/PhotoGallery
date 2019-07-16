@@ -19,6 +19,7 @@ public class PhotoGalleryFragment extends Fragment {
 
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
+    private FetchItemsTask mFetchTask;
 
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
@@ -26,8 +27,12 @@ public class PhotoGalleryFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        /* Удержание фрагмента */
         setRetainInstance(true);
-        new FetchItemsTask().execute();
+        
+        mFetchTask = new FetchItemsTask();
+        mFetchTask.execute();
     }
 
     @Override
@@ -40,6 +45,18 @@ public class PhotoGalleryFragment extends Fragment {
         setupAdapter();
 
         return v;
+    }
+
+    @Override
+    public void onStop(){
+        super.onStop();
+        mFetchTask.cancel(true);
+    }
+
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        mFetchTask.cancel(true);
     }
 
     private void setupAdapter() {
