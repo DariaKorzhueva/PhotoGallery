@@ -21,11 +21,18 @@ import java.util.List;
 
 public class FlickrFetchr {
     private static final String TAG = "FlickrFetchr";
+    private static final String PAGE = "page";
     private static final String API_KEY = "4f721bbafa75bf6d2cb5af54f937bb70";
 
+    private static int maxPages;
+    private static int itemsPerPage;
+    private static int totalItems;
+
+    /* Отправка запроса серверу на получение данных о фотографиях и чтение информации */
     public byte[] getUrlBytes(String urlSpec) throws IOException {
         URL url = new URL(urlSpec);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             InputStream in = connection.getInputStream();
@@ -34,12 +41,16 @@ public class FlickrFetchr {
                         ": with " +
                         urlSpec);
             }
+
             int bytesRead = 0;
             byte[] buffer = new byte[1024];
+
+            /* Чтение ответа */
             while ((bytesRead = in.read(buffer)) > 0) {
                 out.write(buffer, 0, bytesRead);
             }
             out.close();
+
             return out.toByteArray();
         } finally {
             connection.disconnect();
@@ -51,10 +62,11 @@ public class FlickrFetchr {
     }
 
     /* Запрос к серверу */
-    public List<GalleryItem> fetchItems() {
+    public List<GalleryItem> fetchItems(Integer page) {
         List<GalleryItem> items = new ArrayList<>();
 
         try {
+            /* Построение запроса к серверу */
             String url = Uri.parse("https://api.flickr.com/services/rest/")
                     .buildUpon()
                     .appendQueryParameter("method", "flickr.photos.getRecent")
@@ -63,31 +75,32 @@ public class FlickrFetchr {
                     .appendQueryParameter("nojsoncallback", "1")
                     .appendQueryParameter("extras", "url_s")
                     .build().toString();
+
             String jsonString = getUrlString(url);
             Log.i(TAG, "Received JSON: " + jsonString);
-            JSONObject jsonBody = new JSONObject(jsonString);
 
-            parseItems(items, jsonBody);
+            /* Извлечение инормации из JSON при помощи средств библиотеки GSON */
+            Gson gson = new Gson();
+            PhotoRequestResult result = gson.fromJson(jsonString, PhotoRequestResult.class);
+            maxPages = result.getPageCount();
+            itemsPerPage = result.getItemsPerPage();
+            totalItems = result.getItemCount();
+            items = result.getResults();
         } catch (IOException ioe) {
             Log.e(TAG, "Failed to fetch items", ioe);
-        } catch (JSONException je) {
-            Log.e(TAG, "Failed to parse JSON", je);
         }
-
         return items;
     }
 
-    /* Извлечение информации о каждой фотографии */
-    private void parseItems(List<GalleryItem> items, JSONObject jsonBody)
-            throws JSONException {
-        Gson gson = new Gson();
-        Type galleryItemType = new TypeToken<ArrayList<GalleryItem>>(){}.getType();
+    public int getItemsPerPage() {
+        return itemsPerPage;
+    }
 
-        JSONObject photosJsonObject = jsonBody.getJSONObject("photos");
-        JSONArray photosJsonArray = photosJsonObject.getJSONArray("photo");
-        String jsonPhotosString = photosJsonArray.toString();
+    public int getMaxPages() {
+        return maxPages;
+    }
 
-        List<GalleryItem> galleyItemList =  gson.fromJson(jsonPhotosString,galleryItemType);
-        items.addAll(galleyItemList);
+    public int getTotalItems() {
+        return totalItems;
     }
 }
