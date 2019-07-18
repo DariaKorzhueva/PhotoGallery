@@ -1,5 +1,6 @@
 package android.bignerdranch.com.photogallery;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -63,6 +64,10 @@ public class PhotoGalleryFragment extends Fragment {
 
         mFetchTask = new FetchItemsTask(null);
         mFetchTask.execute(mCurrentPage);
+
+        /* Запуск служны */
+        Intent i = PollService.newIntent(getActivity());
+        getActivity().startService(i);
 
         /* Подключение к обработчику ответа */
         Handler responseHandler = new Handler();
