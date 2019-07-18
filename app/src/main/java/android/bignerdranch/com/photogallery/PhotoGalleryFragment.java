@@ -233,13 +233,23 @@ public class PhotoGalleryFragment extends Fragment {
 
         @Override
         protected List<GalleryItem> doInBackground(Integer... params) {
-            FlickrFetchr mFetcher = new FlickrFetchr();
-            mFetcher.fetchItems(params[0]);
+            FlickrFetchr mFetcher;
+            List<GalleryItem> buf;
+
+            String query = "robot"; // Для тестирования
+            if (query == null) {
+                mFetcher = new FlickrFetchr();
+                buf = mFetcher.fetchRecentPhotos();
+            } else {
+                mFetcher = new FlickrFetchr();
+                buf = mFetcher.searchPhotos(query);
+            }
+
             mMaxPage = mFetcher.getMaxPages();
             mItemsPerPage = mFetcher.getItemsPerPage();
             mMaxItems = mFetcher.getTotalItems();
 
-            return mFetcher.fetchItems(params[0]);
+            return buf;
         }
 
         /* Обновление интерфейса после загрузки фотографий */

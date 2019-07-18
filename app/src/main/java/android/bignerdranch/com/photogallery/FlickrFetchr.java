@@ -23,6 +23,16 @@ public class FlickrFetchr {
     private static final String TAG = "FlickrFetchr";
     private static final String PAGE = "page";
     private static final String API_KEY = "4f721bbafa75bf6d2cb5af54f937bb70";
+    private static final String FETCH_RECENTS_METHOD = "flickr.photos.getRecent";
+    private static final String SEARCH_METHOD = "flickr.photos.search";
+    private static final Uri ENDPOINT = Uri
+            .parse("https://api.flickr.com/services/rest/")
+            .buildUpon()
+            .appendQueryParameter("api_key", API_KEY)
+            .appendQueryParameter("format", "json")
+            .appendQueryParameter("nojsoncallback", "1")
+            .appendQueryParameter("extras", "url_s")
+            .build();
 
     private static int maxPages;
     private static int itemsPerPage;
@@ -62,20 +72,10 @@ public class FlickrFetchr {
     }
 
     /* Запрос к серверу */
-    public List<GalleryItem> fetchItems(Integer page) {
+    private List<GalleryItem> downloadGalleryItems(Integer page, String url) {
         List<GalleryItem> items = new ArrayList<>();
 
         try {
-            /* Построение запроса к серверу */
-            String url = Uri.parse("https://api.flickr.com/services/rest/")
-                    .buildUpon()
-                    .appendQueryParameter("method", "flickr.photos.getRecent")
-                    .appendQueryParameter("api_key", API_KEY)
-                    .appendQueryParameter("format", "json")
-                    .appendQueryParameter("nojsoncallback", "1")
-                    .appendQueryParameter("extras", "url_s")
-                    .build().toString();
-
             String jsonString = getUrlString(url);
             Log.i(TAG, "Received JSON: " + jsonString);
 
@@ -90,6 +90,27 @@ public class FlickrFetchr {
             Log.e(TAG, "Failed to fetch items", ioe);
         }
         return items;
+    }
+
+    private String buildUrl(String method, String query) {
+        Uri.Builder uriBuilder = ENDPOINT.buildUpon()
+                .appendQueryParameter("method", method);
+        if (method.equals(SEARCH_METHOD)) {
+            uriBuilder.appendQueryParameter("text", query);
+        }
+        return uriBuilder.build().toString();
+    }
+
+    /* Загрузка фотграфий */
+    public List<GalleryItem> fetchRecentPhotos() {
+        String url = buildUrl(FETCH_RECENTS_METHOD, null);
+        return downloadGalleryItems(1, url);
+    }
+
+    /* Поиск фотографий */
+    public List<GalleryItem> searchPhotos(String query) {
+        String url = buildUrl(SEARCH_METHOD, query);
+        return downloadGalleryItems(1, url);
     }
 
     public int getItemsPerPage() {
