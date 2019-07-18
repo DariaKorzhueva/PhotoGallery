@@ -17,6 +17,9 @@ import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.squareup.picasso.LruCache;
+import com.squareup.picasso.Picasso;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +33,7 @@ public class PhotoGalleryFragment extends Fragment {
     private RecyclerView mPhotoRecyclerView;
     private TextView mCurrentPageView;
     private ThumbnailDownloader<PhotoHolder> mThumbnailDownloader;
+    private Picasso mPicasso;
 
     private int mCurrentPage = 1;
     private int mItemsPerPage;
@@ -69,6 +73,11 @@ public class PhotoGalleryFragment extends Fragment {
         mThumbnailDownloader.start();
         mThumbnailDownloader.getLooper();
         Log.i(TAG, "Background thread started");
+
+        /* Назначение размера кэша для изображений */
+        mPicasso = new Picasso.Builder(getActivity())
+                .memoryCache(new LruCache(24000))
+                .build();
     }
 
     @Override
@@ -102,8 +111,8 @@ public class PhotoGalleryFragment extends Fragment {
                         int calcPage = 0;
 
                         /* Если первый видимый элемент меньше количества элементов на странице
-                        * То это первая страница
-                        * Иначе - вычислить страницу */
+                         * То это первая страница
+                         * Иначе - вычислить страницу */
                         if (firstVisibleItem < mItemsPerPage) {
                             calcPage = 1;
                         } else {
@@ -167,6 +176,15 @@ public class PhotoGalleryFragment extends Fragment {
     private class PhotoHolder extends RecyclerView.ViewHolder {
         private ImageView mItemImageView;
 
+        /* Загрузка изображений из кэша */
+        public void bindGalleryItem(GalleryItem galleryItem) {
+            mPicasso.with(getActivity())
+                    .load(galleryItem.getUrl())
+                    .placeholder(R.drawable.bill_up_close)
+                    .into(mItemImageView);
+
+        }
+
         public PhotoHolder(View itemView) {
             super(itemView);
 
@@ -198,8 +216,8 @@ public class PhotoGalleryFragment extends Fragment {
             GalleryItem galleryItem = mGalleryItems.get(position);
             Drawable placeholder = getResources().getDrawable(R.drawable.bill_up_close);
             photoHolder.bindDrawable(placeholder);
-
             mThumbnailDownloader.queueThumbnail(photoHolder, galleryItem.getUrl());
+            photoHolder.bindGalleryItem(galleryItem);
         }
 
         @Override
