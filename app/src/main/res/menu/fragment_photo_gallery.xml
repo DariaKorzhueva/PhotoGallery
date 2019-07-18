@@ -1,32 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <TextView
-        android:id="@+id/current_page_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"/>
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <ProgressBar
-            android:id="@+id/main_progress"
-            android:visibility="visible"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:paddingTop="250dp"/>
-    </FrameLayout>
-
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/photo_recycler_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        tools:context="com.bignerdranch.android.photogallery.PhotoGalleryActivity"/>
-
-</LinearLayout>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/menu_item_search"
+        android:title="@string/search"
+        app:actionViewClass="android.support.v7.widget.SearchView"
+        app:showAsAction="ifRoom" />
+    <item android:id="@+id/menu_item_clear"
+        android:title="@string/clear_search"
+        app:showAsAction="never" />
+</menu>
