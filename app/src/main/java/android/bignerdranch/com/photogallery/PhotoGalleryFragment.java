@@ -9,12 +9,17 @@ import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.squareup.picasso.LruCache;
@@ -32,6 +37,7 @@ public class PhotoGalleryFragment extends Fragment {
     private FetchItemsTask mFetchTask;
     private RecyclerView mPhotoRecyclerView;
     private TextView mCurrentPageView;
+    private ProgressBar mProgressBar;
     private ThumbnailDownloader<PhotoHolder> mThumbnailDownloader;
     private Picasso mPicasso;
 
@@ -53,7 +59,9 @@ public class PhotoGalleryFragment extends Fragment {
         /* Удержание фрагмента */
         setRetainInstance(true);
 
-        mFetchTask = new FetchItemsTask();
+        setHasOptionsMenu(true);
+
+        mFetchTask = new FetchItemsTask(null);
         mFetchTask.execute(mCurrentPage);
 
         /* Подключение к обработчику ответа */
@@ -81,10 +89,63 @@ public class PhotoGalleryFragment extends Fragment {
     }
 
     @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater menuInflater) {
+        super.onCreateOptionsMenu(menu, menuInflater);
+        menuInflater.inflate(R.menu.fragment_photo_gallery, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.menu_item_search);
+        final SearchView searchView = (SearchView) searchItem.getActionView();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                Log.d(TAG, "QueryTextSubmit: " + s);
+                QueryPreferences.setStoredQuery(getActivity(), s);
+                searchView.onActionViewCollapsed();
+                showProgressBar();
+                updateItems();
+                return true;
+
+            }
+            @Override
+            public boolean onQueryTextChange(String s) {
+                Log.d(TAG, "QueryTextChange: " + s);
+                return false;
+            }
+        });
+
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String query = QueryPreferences.getStoredQuery(getActivity());
+                searchView.setQuery(query, false);
+            }
+        });
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_clear:
+                QueryPreferences.setStoredQuery(getActivity(), null);
+                updateItems();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void updateItems() {
+        String query = QueryPreferences.getStoredQuery(getActivity());
+        new FetchItemsTask(query).execute();
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_photo_gallery, container, false);
         mCurrentPageView = (TextView) v.findViewById(R.id.current_page_view);
+        mProgressBar = v.findViewById(R.id.main_progress);
+        showProgressBar();
         mPhotoRecyclerView = (RecyclerView) v.findViewById(R.id.photo_recycler_view);
         mGridLayoutManager = new GridLayoutManager(getActivity(), 3);
         mPhotoRecyclerView.setLayoutManager(mGridLayoutManager);
@@ -104,7 +165,7 @@ public class PhotoGalleryFragment extends Fragment {
                         mCurrentPage++;
 
                         mFetchTask.cancel(true);
-                        mFetchTask = new FetchItemsTask();
+                        mFetchTask = new FetchItemsTask(null);
                         mFetchTask.execute(mCurrentPage);// Also updates current page view
                     } else {
                         int firstVisibleItem = mGridLayoutManager.findFirstVisibleItemPosition();
@@ -231,18 +292,22 @@ public class PhotoGalleryFragment extends Fragment {
         private static final int COLUMNS_SIZE = 200;
         private int mGridColumns;
 
+        private String mQuery;
+        public FetchItemsTask(String query) {
+            mQuery = query;
+        }
+
         @Override
         protected List<GalleryItem> doInBackground(Integer... params) {
             FlickrFetchr mFetcher;
             List<GalleryItem> buf;
 
-            String query = "robot"; // Для тестирования
-            if (query == null) {
+            if (mQuery == null) {
                 mFetcher = new FlickrFetchr();
                 buf = mFetcher.fetchRecentPhotos();
             } else {
                 mFetcher = new FlickrFetchr();
-                buf = mFetcher.searchPhotos(query);
+                buf = mFetcher.searchPhotos(mQuery);
             }
 
             mMaxPage = mFetcher.getMaxPages();
@@ -255,6 +320,8 @@ public class PhotoGalleryFragment extends Fragment {
         /* Обновление интерфейса после загрузки фотографий */
         @Override
         protected void onPostExecute(List<GalleryItem> items) {
+            hideProgressBar();
+
             if (mItems.size() == 0) {
                 mItems.addAll(items);
                 setupAdapter();
@@ -282,5 +349,13 @@ public class PhotoGalleryFragment extends Fragment {
                 mPhotoRecyclerView.getAdapter().notifyDataSetChanged();
             }
         }
+    }
+
+    private void showProgressBar() {
+        mProgressBar.setVisibility(View.VISIBLE);
+    }
+
+    private void hideProgressBar() {
+        mProgressBar.setVisibility(View.GONE);
     }
 }
