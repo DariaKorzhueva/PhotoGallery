@@ -1,5 +1,6 @@
 package android.bignerdranch.com.photogallery;
 
+import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.Notification;
@@ -20,7 +21,11 @@ import java.util.concurrent.TimeUnit;
 public class PollService extends IntentService {
     private static final String TAG = "PollService";
     public static final String ACTION_SHOW_NOTIFICATION =
-            "com.bignerdranch.android.photogallery.SHOW_NOTIFICATION";
+            "android.bignerdranch.com.photogallery.SHOW_NOTIFICATION";
+    public static final String PERM_PRIVATE =
+            "android.bignerdranch.com.photogallery.PRIVATE";
+    public static final String REQUEST_CODE = "REQUEST_CODE";
+    public static final String NOTIFICATION = "NOTIFICATION";
 
     // 60 секунд
     private static final long POLL_INTERVAL_MS = TimeUnit.MINUTES.toMillis(1);
@@ -87,8 +92,7 @@ public class PollService extends IntentService {
             Resources resources = getResources();
             Intent i = PhotoGalleryActivity.newIntent(this);
             PendingIntent pi = PendingIntent.getActivity(this, 0, i, 0);
-            NotificationManager mNotificationManager =
-                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
 
             Notification.Builder builder = null;
             String CHANNEL_ID = "photogallery_1";
@@ -104,8 +108,6 @@ public class PollService extends IntentService {
                         .setAutoCancel(true);
                 NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
                         getString(R.string.new_pictures_title), NotificationManager.IMPORTANCE_DEFAULT);
-                assert mNotificationManager != null;
-                mNotificationManager.createNotificationChannel(channel);
 
             } else {
                 builder = new Notification
@@ -117,12 +119,18 @@ public class PollService extends IntentService {
                         .setAutoCancel(true);
             }
 
-            mNotificationManager.notify(0, builder.build());
-
-            sendBroadcast(new Intent(ACTION_SHOW_NOTIFICATION));
+            showBackgroundNotification(0, builder.build());
         }
 
         QueryPreferences.setLastResultId(this, resultId);
+    }
+
+    private void showBackgroundNotification(int requestCode, Notification notification) {
+        Intent i = new Intent(ACTION_SHOW_NOTIFICATION);
+        i.putExtra(REQUEST_CODE, requestCode);
+        i.putExtra(NOTIFICATION, notification);
+        sendOrderedBroadcast(i, PERM_PRIVATE, null, null,
+                Activity.RESULT_OK, null, null);
     }
 
     /* Проверка работоспособности сети */

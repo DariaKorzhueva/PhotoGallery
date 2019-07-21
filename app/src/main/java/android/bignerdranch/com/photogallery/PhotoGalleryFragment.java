@@ -7,7 +7,6 @@ import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
@@ -107,6 +106,7 @@ public class PhotoGalleryFragment extends VisibleFragment {
                 return true;
 
             }
+
             @Override
             public boolean onQueryTextChange(String s) {
                 Log.d(TAG, "QueryTextChange: " + s);
@@ -248,11 +248,14 @@ public class PhotoGalleryFragment extends VisibleFragment {
         }
     }
 
-    private class PhotoHolder extends RecyclerView.ViewHolder {
+    private class PhotoHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private ImageView mItemImageView;
+        private GalleryItem mGalleryItem;
 
         /* Загрузка изображений из кэша */
         public void bindGalleryItem(GalleryItem galleryItem) {
+            mGalleryItem = galleryItem;
+
             mPicasso.with(getActivity())
                     .load(galleryItem.getUrl())
                     .placeholder(R.drawable.bill_up_close)
@@ -264,10 +267,19 @@ public class PhotoGalleryFragment extends VisibleFragment {
             super(itemView);
 
             mItemImageView = (ImageView) itemView.findViewById(R.id.item_image_view);
+            itemView.setOnClickListener(this);
         }
 
         public void bindDrawable(Drawable drawable) {
             mItemImageView.setImageDrawable(drawable);
+        }
+
+
+        @Override
+        public void onClick(View v) {
+            Intent i = new Intent(Intent.ACTION_VIEW, mGalleryItem.
+                    getPhotoPageUri());
+            startActivity(i);
         }
     }
 
@@ -289,10 +301,10 @@ public class PhotoGalleryFragment extends VisibleFragment {
         @Override
         public void onBindViewHolder(PhotoHolder photoHolder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
+            photoHolder.bindGalleryItem(galleryItem);
             Drawable placeholder = getResources().getDrawable(R.drawable.bill_up_close);
             photoHolder.bindDrawable(placeholder);
             mThumbnailDownloader.queueThumbnail(photoHolder, galleryItem.getUrl());
-            photoHolder.bindGalleryItem(galleryItem);
         }
 
         @Override
@@ -307,6 +319,7 @@ public class PhotoGalleryFragment extends VisibleFragment {
         private int mGridColumns;
 
         private String mQuery;
+
         public FetchItemsTask(String query) {
             mQuery = query;
         }
